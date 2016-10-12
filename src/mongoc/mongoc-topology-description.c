@@ -68,6 +68,7 @@ mongoc_topology_description_init (mongoc_topology_description_t      *descriptio
    description->compatible = true;
    description->compatibility_error = NULL;
    description->stale = true;
+   description->rand_seed = (unsigned int) bson_get_monotonic_time ();
 
    EXIT;
 }
@@ -80,6 +81,8 @@ mongoc_topology_description_init (mongoc_topology_description_t      *descriptio
  *       Deep-copy @src to an uninitialized topology description @dst.
  *       @dst must not already point to any allocated resources. Clean
  *       up with mongoc_topology_description_destroy.
+ *
+ *       WARNING: @dst's rand_seed is not initialized.
  *
  * Returns:
  *       None.
@@ -665,6 +668,7 @@ mongoc_topology_description_select (mongoc_topology_description_t *topology,
 {
    mongoc_array_t suitable_servers;
    mongoc_server_description_t *sd = NULL;
+   int rand_n;
 
    ENTRY;
 
@@ -689,8 +693,9 @@ mongoc_topology_description_select (mongoc_topology_description_t *topology,
                                                  topology, read_pref,
                                                  local_threshold_ms);
    if (suitable_servers.len != 0) {
+      rand_n = MONGOC_RAND_R (&topology->rand_seed);
       sd = _mongoc_array_index(&suitable_servers, mongoc_server_description_t*,
-                               rand() % suitable_servers.len);
+                               rand_n % suitable_servers.len);
    }
 
    _mongoc_array_destroy (&suitable_servers);
