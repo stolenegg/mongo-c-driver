@@ -410,7 +410,7 @@ test_bulk_error_unordered (void)
 
    bulk = mongoc_collection_create_bulk_operation (collection, false, NULL);
    for (i=0; i<=2048; i++) {
-      mongoc_bulk_operation_update_with_opts (bulk, tmp_bson ("{'hello': 'earth'}"), tmp_bson ("{'$set': {'hello': 'world'}}"), NULL, &error);
+      mongoc_bulk_operation_update_many_with_opts (bulk, tmp_bson ("{'hello': 'earth'}"), tmp_bson ("{'$set': {'hello': 'world'}}"), NULL, &error);
    }
 
    future = future_bulk_operation_execute (bulk, &reply, &error);
@@ -3170,12 +3170,12 @@ _test_bulk_collation (int w, int wire_version, bulkop op)
    bulk = mongoc_collection_create_bulk_operation (collection, true, wc);
    switch (op) {
       case BULK_REMOVE:
-         mongoc_bulk_operation_remove_with_opts (bulk, tmp_bson ("{'_id': 1}"), opts, &error);
+         mongoc_bulk_operation_remove_many_with_opts (bulk, tmp_bson ("{'_id': 1}"), opts, &error);
          expect = "{'delete': 'test',"
             " 'writeConcern': {'w': %d, 'wtimeout': 100},"
             " 'ordered': true,"
             " 'deletes': ["
-            "    {'q': {'_id': 1}, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}}"
+            "    {'q': {'_id': 1}, 'limit': 0, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}}"
             " ]"
          "}";
          break;
@@ -3195,17 +3195,17 @@ _test_bulk_collation (int w, int wire_version, bulkop op)
             " 'writeConcern': {'w': %d, 'wtimeout': 100},"
             " 'ordered': true,"
             " 'updates': ["
-            "    {'q': {'_id': 3}, 'u':  {'_id': 4}, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}}"
+            "    {'q': {'_id': 3}, 'u':  {'_id': 4}, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}, 'multi': false}"
             " ]"
          "}";
          break;
       case BULK_UPDATE:
-         mongoc_bulk_operation_update_with_opts (bulk, tmp_bson ("{'_id': 5}"), tmp_bson ("{'$set': {'_id': 6}}"), opts, &error);
+         mongoc_bulk_operation_update_many_with_opts (bulk, tmp_bson ("{'_id': 5}"), tmp_bson ("{'$set': {'_id': 6}}"), opts, &error);
          expect = "{'update': 'test',"
             " 'writeConcern': {'w': %d, 'wtimeout': 100},"
             " 'ordered': true,"
             " 'updates': ["
-            "    {'q': {'_id': 5}, 'u':  { '$set': {'_id': 6} }, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}}"
+            "    {'q': {'_id': 5}, 'u':  { '$set': {'_id': 6} }, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}, 'multi': true }"
             " ]"
          "}";
          break;
@@ -3215,7 +3215,7 @@ _test_bulk_collation (int w, int wire_version, bulkop op)
             " 'writeConcern': {'w': %d, 'wtimeout': 100},"
             " 'ordered': true,"
             " 'updates': ["
-            "    {'q': {'_id': 7}, 'u':  { '$set': {'_id': 8} }, 'multi': false, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}}"
+            "    {'q': {'_id': 7}, 'u':  { '$set': {'_id': 8} }, 'collation': { 'locale': 'en_US', 'caseFirst': 'lower'}, 'multi': false}"
             " ]"
          "}";
          break;
@@ -3293,8 +3293,8 @@ _test_bulk_collation_multi (int w, int wire_version)
    mongoc_write_concern_set_wtimeout (wc, 100);
 
    bulk = mongoc_collection_create_bulk_operation (collection, true, wc);
-   mongoc_bulk_operation_remove_with_opts (bulk, tmp_bson ("{'_id': 1}"), NULL, &error);
-   mongoc_bulk_operation_remove_with_opts (bulk, tmp_bson ("{'_id': 2}"), opts, &error);
+   mongoc_bulk_operation_remove_many_with_opts (bulk, tmp_bson ("{'_id': 1}"), NULL, &error);
+   mongoc_bulk_operation_remove_many_with_opts (bulk, tmp_bson ("{'_id': 2}"), opts, &error);
    future = future_bulk_operation_execute (bulk, &reply, &error);
 
    if (wire_version >= WIRE_VERSION_COLLATION && w) {
